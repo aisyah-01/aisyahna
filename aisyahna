@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Color Connect Game</title>
+<style>
+  * {
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(135deg, #f5a623, #f76b1c);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  h1 {
+    color: white;
+    margin-top: 20px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  }
+
+  #gameBoard {
+    display: grid;
+    grid-template-columns: repeat(5, 60px);
+    grid-template-rows: repeat(5, 60px);
+    gap: 8px;
+    margin-top: 30px;
+    touch-action: none;
+  }
+
+  .cell {
+    width: 60px;
+    height: 60px;
+    border-radius: 15px;
+    background-color: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+  }
+
+  .dot {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+  }
+
+  .line {
+    position: absolute;
+    border-radius: 10px;
+    pointer-events: none;
+    transform-origin: 0 50%;
+  }
+
+  footer {
+    color: white;
+    margin-top: auto;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+  }
+</style>
+</head>
+<body>
+  <h1>🎨 Color Connect</h1>
+  <div id="gameBoard"></div>
+  <footer>Made with ❤️ by Aisyah</footer>
+
+<script>
+  const colors = ["#FF3B30", "#34C759", "#007AFF", "#FF9500", "#AF52DE"];
+  const gridSize = 5;
+  const board = document.getElementById("gameBoard");
+  let grid = [];
+  let activeColor = null;
+  let isDrawing = false;
+  let startCell = null;
+  let line;
+
+  // Generate the board
+  function initBoard() {
+    const pairs = [];
+    for (let i = 0; i < colors.length; i++) {
+      pairs.push({ color: colors[i], positions: [] });
+    }
+
+    // Buat posisi acak untuk setiap pasangan warna
+    const allPositions = [];
+    for (let i = 0; i < gridSize * gridSize; i++) allPositions.push(i);
+    allPositions.sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < colors.length; i++) {
+      const pos1 = allPositions.pop();
+      const pos2 = allPositions.pop();
+      pairs[i].positions = [pos1, pos2];
+    }
+
+    // Render grid
+    for (let i = 0; i < gridSize * gridSize; i++) {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
+      cell.dataset.index = i;
+      const pair = pairs.find(p => p.positions.includes(i));
+      if (pair) {
+        const dot = document.createElement("div");
+        dot.classList.add("dot");
+        dot.style.background = pair.color;
+        cell.appendChild(dot);
+        cell.dataset.color = pair.color;
+      }
+      board.appendChild(cell);
+      grid.push(cell);
+    }
+  }
+
+  // Handle touch
+  function startDraw(e) {
+    const target = e.target.closest(".cell");
+    if (target && target.dataset.color) {
+      isDrawing = true;
+      startCell = target;
+      activeColor = target.dataset.color;
+      line = document.createElement("div");
+      line.classList.add("line");
+      line.style.background = activeColor;
+      document.body.appendChild(line);
+    }
+  }
+
+  function moveDraw(e) {
+    if (!isDrawing || !line) return;
+    const touch = e.touches[0];
+    const startRect = startCell.getBoundingClientRect();
+    const x1 = startRect.left + startRect.width / 2;
+    const y1 = startRect.top + startRect.height / 2;
+    const x2 = touch.clientX;
+    const y2 = touch.clientY;
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+    line.style.width = `${length}px`;
+    line.style.height = `10px`;
+    line.style.position = "fixed";
+    line.style.left = `${x1}px`;
+    line.style.top = `${y1 - 5}px`;
+    line.style.transform = `rotate(${angle}deg)`;
+  }
+
+  function endDraw(e) {
+    if (!isDrawing) return;
+    const target = document.elementFromPoint(
+      e.changedTouches[0].clientX,
+      e.changedTouches[0].clientY
+    );
+    const cell = target?.closest(".cell");
+
+    if (cell && cell !== startCell && cell.dataset.color === activeColor) {
+      cell.style.background = activeColor;
+      startCell.style.background = activeColor;
+    }
+
+    isDrawing = false;
+    activeColor = null;
+    startCell = null;
+    line && line.remove();
+    line = null;
+  }
+
+  board.addEventListener("touchstart", startDraw);
+  board.addEventListener("touchmove", moveDraw);
+  board.addEventListener("touchend", endDraw);
+
+  initBoard();
+</script>
+</body>
+</html>
